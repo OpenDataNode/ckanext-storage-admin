@@ -34,7 +34,7 @@ Address = localhost:1111
 Installation
 -------
 
-Activate ckan virtualenv 
+Activate ckan virtualenv: 
 ``` . /usr/lib/ckan/default/bin/activate ```
 
 Start the installation from the extension directory:
@@ -57,28 +57,36 @@ Extension reads data from 3 different sources:
 
 **Filesystem**
 
- FileStore path is configured in ckan configuration file as ```ckan.storage_path```. You should have this in your config already.
+FileStore path is configured in ckan configuration file as ```ckan.storage_path```. You should have this in your config already.
 
 **Database**
 
-*Connection string*
 Connection strings for the PostgreSQL instance are configured in ckan configuration file. This extension uses the read-only user:
-```ckan.datastore.read_url = postgresql://datastore_default:datastore_default@localhost/datastore_default```. You should have this if you've configured the DataStore extension.
+```
+ckan.datastore.read_url = postgresql://datastore_default:datastore_default@localhost/datastore_default
+```
+You should have this if you've configured the DataStore extension.
 
-*Scheme*
+
 DataStore scheme name:
-```edemo.storage.admin.datastore.schema = public```
+```
+edemo.storage.admin.datastore.schema = public
+```
 
 **Triplestore**
 
 Virtuoso is used here both as an SPARQL endpoint, and as an SQL database, so both methods need to be configured.
 
 * The SPARQL endpoint URL:
-```edemo.storage.admin.sparql.endpoint = http://localhost:8890/sparql```
+```
+edemo.storage.admin.sparql.endpoint = http://localhost:8890/sparql
+```
 
 * The ODBC DSN:
-  ```edemo.storage.admin.virtuoso.dsn = "DSN=Virtuoso;UID=dba;PWD=dba;"```
-  Name of the DSN comes from the ODBC configuration file, typically ```~/.odbc.ini```
+```
+edemo.storage.admin.virtuoso.dsn = "DSN=Virtuoso;UID=dba;PWD=dba;"
+```
+Name of the DSN comes from the ODBC configuration file, typically ```~/.odbc.ini```
 
 
 Usage
@@ -94,16 +102,16 @@ get_action = logic.get_action
 # aggregate stats for whole CKAN instance
 aggregate_stats = get_action('used_space')(context, {})
 print 'FileStore uses: {0} bytes'.format(aggregate_stats['filesystem'])
-print 'DataStore uses: {0} bytes'.format(print aggregate_stats['database'])
-print 'Triplestore has: {0} triples'.format(print aggregate_stats['triplestore'])
+print 'DataStore uses: {0} bytes'.format(aggregate_stats['database'])
+print 'Triplestore has: {0} triples'.format(aggregate_stats['triplestore'])
 
 # per organisation stats
 per_org_stats = get_action('used_space_per_org')(context, {})
 for org in per_org_stats:
   print 'Stats for organisation id {0}:'.format(org)
   print 'FileStore uses: {0} bytes'.format(org['filesystem'])
-  print 'DataStore uses: {0} bytes'.format(print org['database'])
-  print 'Triplestore has: {0} triples'.format(print org['triplestore'])
+  print 'DataStore uses: {0} bytes'.format(org['database'])
+  print 'Triplestore has: {0} triples'.format(org['triplestore'])
 ```
 
 **CKAN API usage:**
