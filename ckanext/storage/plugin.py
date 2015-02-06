@@ -6,24 +6,30 @@ import ckan.plugins as plugins
 import ckan.lib.uploader as uploader
 import ckanext.datastore.db as db
 import logging
+import pypyodbc as pyodbc
 
 from ckan.lib.base import h
+from SPARQLWrapper import SPARQLWrapper, JSON
 
 log = logging.getLogger('ckanext')
 get_action = logic.get_action
 
 # always use _get_empty() to create a copy
 EMPTY = {'filesystem': 0L, 'database': 0L, 'triplestore': 0L}
-DATASTORE_SCHEMA = 'public'
+
+# these constants should be in CKAN config file
+CKAN_DATASTORE_SCHEMA = 'public'
+SPARQL_ENDPOINT = "http://localhost:8890/sparql"
+VIRTUOSO_DSN = "DSN=Virtuoso;UID=dba;PWD=dba;"
 
 
 def used_space(context, data_dict=None):
     """
-    Returns used space or count in all 3 components aggregated for all organizations.
-    Component is one of filesystem, database, triplestore.
-
-    For filesystem and database, used space in bytes is reported. For triplestore, it's the number
-    of graphs the organization uses.
+    Returns stats for all 3 components aggregated for all organizations.
+    Specifically:
+        - filesystem: number of bytes used
+        - database: number of bytes used
+        - triplestore: number of triplets stored
 
     Structure of reply:
     {
@@ -40,7 +46,8 @@ def used_space(context, data_dict=None):
     for org_id, sizes in used_space_per_org(context, data_dict).iteritems():
         reply['filesystem'] += long(sizes['filesystem'])
         reply['database'] += long(sizes['database'])
-        reply['triplestore'] += long(sizes['triplestore'])
+
+    reply['triplestore'] = _triple_count_total()
 
     return reply
 
@@ -48,11 +55,11 @@ def used_space(context, data_dict=None):
 # noinspection PyUnusedLocal
 def used_space_per_org(context, data_dict=None):
     """
-    Returns used space or count in all 3 components for all organizations.
-    Component is one of filesystem, database, triplestore.
-
-    For filesystem and database, used space in bytes is reported. For triplestore, it's the number
-    of graphs the organization uses.
+    Returns stats for all 3 components for all organizations separately.
+    Specifically:
+        - filesystem: number of bytes used
+        - database: number of bytes used
+        - triplestore: number of triplets stored
 
     Structure of reply:
     {
@@ -71,12 +78,95 @@ def used_space_per_org(context, data_dict=None):
 
     _filesystem_space_per_org(context, reply)
     _database_space_per_org(context, reply)
-    _triplet_count_per_org(context, reply)
+    _triple_count_per_org(context, reply)
 
     return reply
 
 
-def _triplet_count_per_org(context, reply):
+def _triple_count_total():
+    sparql = SPARQLWrapper(SPARQL_ENDPOINT)
+    sparql.setQuery("""
+        SELECT count(*) AS ?count
+        WHERE { ?s ?p ?o . }
+    """)
+
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+
+    for result in results["results"]["bindings"]:
+        return long(result["count"]["value"])
+
+
+def _get_graph_list():
+    sparql = SPARQLWrapper(SPARQL_ENDPOINT)
+    sparql.setQuery("""
+        SELECT DISTINCT ?g
+        WHERE { GRAPH ?g { ?s ?p ?o . }}
+    """)
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+
+    return [str(result['g']['value']) for result in results['results']['bindings']]
+
+
+def _get_graph_triple_count(graph_iri):
+    sparql = SPARQLWrapper(SPARQL_ENDPOINT)
+    sparql.setQuery("""
+        SELECT COUNT(*)
+        WHERE { ?s ?p ?o . }
+    """)
+    sparql.addDefaultGraph(graph_iri)
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+
+    return long(results['results']['bindings'][0]['callret-0']['value'])
+
+
+def _triple_count_per_org(context, reply):
+    # requires iODBC with Virtuoso driver to be installed and configured
+    # see ~/.odbc.ini
+
+    # loads list of users with write permissions for the specified graph IRI
+    graph_owners = '''
+        SELECT
+            u.U_ID,
+            u.U_NAME
+        FROM
+            "DB"."DBA"."SYS_USERS" as u,
+            "DB"."DBA"."RDF_GRAPH_USER" as gu,
+            "DB"."DBA"."RDF_IRI" as iri
+        WHERE
+            u.U_ID = gu.RGU_USER_ID AND         -- join SYS_USERS with RDF_GRAPH_USER
+            gu.RGU_GRAPH_IID = iri.RI_ID AND    -- join RDF_GRAPH_USER with RDF_IRI
+            gu.RGU_PERMISSIONS >= 3 AND         -- only >= write permissions
+            iri.RI_ID = iri_to_id(?, 0)         -- for the specified graph IRI
+    '''
+
+    list_of_orgs = get_action('organization_list')(context, {'all_fields': True})
+    list_of_orgs_by_names = {}
+    for o in list_of_orgs:
+        org_name = o['name']
+        if org_name not in list_of_orgs_by_names:
+            list_of_orgs_by_names[org_name] = o
+
+    cnxn = pyodbc.connect(VIRTUOSO_DSN)
+    for graph_iri in _get_graph_list():
+        cursor = cnxn.cursor()
+        cursor.execute(graph_owners, (graph_iri, ))
+        row = cursor.fetchone()
+
+        if row is not None:
+            log.debug('graph_iri = {0}, user_id = {1}, user_name = {2}'.format(graph_iri, row[0], row[1]))
+
+            user_name = row[1]
+            if user_name in list_of_orgs_by_names:
+                org_id = list_of_orgs_by_names[user_name]['id']
+                graph_size = _get_graph_triple_count(graph_iri)
+                if org_id not in reply:
+                    reply[org_id] = _get_empty()
+                reply[org_id]['triplestore'] += long(graph_size)
+
+        cursor.close()
     return
 
 
@@ -94,7 +184,7 @@ def _database_space_per_org(context, reply):
     table_sql = sqlalchemy.text(table_size_query)
     data_dict = {'connection_url': pylons.config['ckan.datastore.read_url']}
     # noinspection PyProtectedMember
-    results = db._get_engine(data_dict).execute(table_sql, schema=DATASTORE_SCHEMA).fetchall()
+    results = db._get_engine(data_dict).execute(table_sql, schema=CKAN_DATASTORE_SCHEMA).fetchall()
 
     # use only tables from datastore API
     table_list = _list_of_datastore_tables(context)

@@ -10,9 +10,9 @@ setup(
     """,
     long_description="""
     Reports data usage through CKAN API as total aggregate and per organization.
-    - filesystem: amount of data used by datasets
-    - database: PostgreSQL data used
-    - triplestore: Virtuoso data used
+    - filesystem: amount of data in bytes used by datasets
+    - database: PostgreSQL data in bytes used
+    - triplestore: Virtuoso triple count used
     """,
     classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
     keywords='',
@@ -27,7 +27,9 @@ setup(
     package_data={'': []},
     include_package_data=False,
     zip_safe=False,
-    install_requires=[],
+    install_requires=[
+        'SPARQLWrapper>=1.6.4',
+        'pypyodbc>=1.3.3'],
     entry_points=\
     """
     [ckan.plugins]
