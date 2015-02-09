@@ -116,10 +116,8 @@ for org in per_org_stats:
 
 **CKAN API usage:**
 
-*Postman*
 For easy experimenation, you can use the prepared [Postman](http://www.getpostman.com/) collection, which can be found in ```ckanext-storage-admin/ckanext-admin-storage.json.postman_collection```
 
-*cURL*
 You can also fire your requests using cURL. The CKAN API used here is reachable at ```http://127.0.0.1:5000/api/3```
 
 For aggregate stats:

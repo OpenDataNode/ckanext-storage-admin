@@ -17,10 +17,9 @@ get_action = logic.get_action
 # always use _get_empty() to create a copy
 EMPTY = {'filesystem': 0L, 'database': 0L, 'triplestore': 0L}
 
-# these constants should be in CKAN config file
-CKAN_DATASTORE_SCHEMA = 'public'
-SPARQL_ENDPOINT = "http://localhost:8890/sparql"
-VIRTUOSO_DSN = "DSN=Virtuoso;UID=dba;PWD=dba;"
+CKAN_DATASTORE_SCHEMA = pylons.config['edemo.storage.admin.datastore.schema']
+SPARQL_ENDPOINT = pylons.config['edemo.storage.admin.sparql.endpoint']
+VIRTUOSO_DSN = pylons.config['edemo.storage.admin.virtuoso.dsn']
 
 
 def used_space(context, data_dict=None):
