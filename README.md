@@ -13,14 +13,14 @@ Features:
 Requirements
 -------
 
-In order to access Virtuoso as an SQL database, you need to have ODBC driver manager with Virtuoso driver, and have the DSN configured for your Virtuoso instance. Here is an example for Ubuntu based distros, with local Virtuoso instance:
+In order to access Virtuoso as an SQL database, you need to install ODBC driver manager with Virtuoso driver, and configure a DSN for your Virtuoso instance. Here is an example for Ubuntu based distros, with local Virtuoso instance:
 
-Install iODBC with Virtuoso driver
+Install iODBC with Virtuoso driver:
 ```bash
 sudo apt-get install libiodbc2 libvirtodbc0
 ```
 
-~/.odbc.ini
+Sample ~/.odbc.ini:
 ```ApacheConf
 [ODBC Data Sources]
 Virtuoso = Virtuoso ODBC Driver
@@ -35,7 +35,9 @@ Installation
 -------
 
 Activate ckan virtualenv: 
-``` . /usr/lib/ckan/default/bin/activate ```
+```bash
+. /usr/lib/ckan/default/bin/activate
+```
 
 Start the installation from the extension directory:
 ```bash
@@ -43,7 +45,7 @@ cd ckanext-storage-admin
 python setup.py install
 ```
 
-Add extension to ckan config: ```/etc/ckan/default/production.ini```
+Add extension to ckan config, typically ```/etc/ckan/default/production.ini```:
 
 ```ApacheConf
 [app:main]
@@ -53,11 +55,15 @@ ckan.plugins = ... storage-admin
 Configuration
 -------
 
-Extension reads data from 3 different sources:
+Extension reads data from 3 different sources. All of them are configured separately.
 
 **Filesystem**
 
-FileStore path is configured in ckan configuration file as ```ckan.storage_path```. You should have this in your config already.
+FileStore path is configured in ckan configuration file as ```ckan.storage_path``` key. You should have this in your config already.
+Example:
+```ApacheConf
+ckan.storage_path = /home/ckan/storage
+```
 
 **Database**
 
@@ -65,17 +71,17 @@ Connection strings for the PostgreSQL instance are configured in ckan configurat
 ```
 ckan.datastore.read_url = postgresql://datastore_default:datastore_default@localhost/datastore_default
 ```
-You should have this if you've configured the DataStore extension.
+You should have this already if you've configured the DataStore extension.
 
 
-DataStore scheme name:
+The name of the scheme for DataStore is configured separately:
 ```
 edemo.storage.admin.datastore.schema = public
 ```
 
 **Triplestore**
 
-Virtuoso is used here both as an SPARQL endpoint, and as an SQL database, so both methods need to be configured.
+Virtuoso is used here both as an SPARQL endpoint, and as a SQL database, so both methods need to be configured.
 
 * The SPARQL endpoint URL:
 ```
@@ -87,6 +93,18 @@ edemo.storage.admin.sparql.endpoint = http://localhost:8890/sparql
 edemo.storage.admin.virtuoso.dsn = "DSN=Virtuoso;UID=dba;PWD=dba;"
 ```
 Name of the DSN comes from the ODBC configuration file, typically ```~/.odbc.ini```
+
+**TLDR;**
+
+```ApacheConf
+[app:main]
+ckan.storage_path = /home/ckan/storage
+ckan.datastore.read_url = postgresql://datastore_default:datastore_default@localhost/datastore_default
+
+edemo.storage.admin.datastore.schema = public
+edemo.storage.admin.sparql.endpoint = http://localhost:8890/sparql
+edemo.storage.admin.virtuoso.dsn = "DSN=Virtuoso;UID=dba;PWD=dba;"
+```
 
 
 Usage
@@ -116,9 +134,9 @@ for org in per_org_stats:
 
 **CKAN API usage:**
 
-For easy experimenation, you can use the prepared [Postman](http://www.getpostman.com/) collection, which can be found in ```ckanext-storage-admin/ckanext-admin-storage.json.postman_collection```
+For easy experimenation, you can use the prepared [Postman](http://www.getpostman.com/) collection: (ckanext-admin-storage.json.postman_collection)
 
-You can also fire your requests using cURL. The CKAN API used here is reachable at ```http://127.0.0.1:5000/api/3```
+You can also fire your requests using cURL. The CKAN API used here as an example is reachable at ```http://127.0.0.1:5000/api/3```, you will need to update the examples to fit your deployment.
 
 For aggregate stats:
 ```bash
@@ -142,7 +160,7 @@ And for per organisation stats:
 curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d '{}' http://127.0.0.1:5000/api/3/action/used_space_per_org
 ```
 
-Sample response:
+Sample response, containing one organization, with id ```6dc5a13f-6eaa-43a4-ac17-d5de6be8f98a```:
 ```json
 {
   "success": true,
@@ -159,4 +177,4 @@ Sample response:
 License
 -------
 
-Licensed under [GNU Affero General Public License, Version 3.0](http://www.gnu.org/licenses/agpl-3.0.html) (see LICENSE)
+Licensed under [GNU Affero General Public License, Version 3.0](http://www.gnu.org/licenses/agpl-3.0.html). See (LICENSE).
