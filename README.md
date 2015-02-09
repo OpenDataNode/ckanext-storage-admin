@@ -134,7 +134,7 @@ for org in per_org_stats:
 
 **CKAN API usage:**
 
-For easy experimenation, you can use the prepared [Postman](http://www.getpostman.com/) collection: (ckanext-admin-storage.json.postman_collection)
+For easy experimenation, you can use the prepared [Postman](http://www.getpostman.com/) collection: [ckanext-admin-storage.json.postman_collection](ckanext-admin-storage.json.postman_collection)
 
 You can also fire your requests using cURL. The CKAN API used here as an example is reachable at ```http://127.0.0.1:5000/api/3```, you will need to update the examples to fit your deployment.
 
@@ -177,4 +177,4 @@ Sample response, containing one organization, with id ```6dc5a13f-6eaa-43a4-ac17
 License
 -------
 
-Licensed under [GNU Affero General Public License, Version 3.0](http://www.gnu.org/licenses/agpl-3.0.html). See (LICENSE).
+Licensed under [GNU Affero General Public License, Version 3.0](http://www.gnu.org/licenses/agpl-3.0.html). See [LICENSE](LICENSE).
