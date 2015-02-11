@@ -125,11 +125,11 @@ print 'Triplestore has: {0} triples'.format(aggregate_stats['triplestore'])
 
 # per organisation stats
 per_org_stats = get_action('used_space_per_org')(context, {})
-for org in per_org_stats:
-  print 'Stats for organisation id {0}:'.format(org)
-  print 'FileStore uses: {0} bytes'.format(org['filesystem'])
-  print 'DataStore uses: {0} bytes'.format(org['database'])
-  print 'Triplestore has: {0} triples'.format(org['triplestore'])
+for key, value in per_org_stats.iteritems():
+  print 'Stats for organisation id {0}:'.format(key)
+  print 'FileStore uses: {0} bytes'.format(value['filesystem'])
+  print 'DataStore uses: {0} bytes'.format(value['database'])
+  print 'Triplestore has: {0} triples'.format(value['triplestore'])
 ```
 
 **CKAN API usage:**
