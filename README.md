@@ -49,7 +49,7 @@ Add extension to ckan config, typically ```/etc/ckan/default/production.ini```:
 
 ```ApacheConf
 [app:main]
-ckan.plugins = ... storage-admin
+ckan.plugins = ... storage_admin
 ```
 
 Configuration
